@@ -84,11 +84,17 @@ for n = 1:niters
         % relavent case
         case 'EM'
             for j=1: mix.ncentres
+                % PSI inverse
                 psiinv=mix.psi(j, :).^-1;
+                % PSI inverse %*% A
                 psiinvA=repmat(psiinv', 1, mix.subdim).*mix.A(:, :, j);
+                % M inverse
                 Minv=inv(eye(mix.subdim)+mix.A(:, :, j)'*psiinvA);
+                % S %*% PSI inverse %*% A
                 SpsiinvA=S(:, :, j)*psiinvA;
+                % S %*% PSI inverse %*% A %*% M inverse
                 SpsiinvAMinv=SpsiinvA*Minv;
+                % maximize A and psi
                 mix.A(:, :, j)=SpsiinvA*inv(eye(mix.subdim)+SpsiinvAMinv'*psiinvA);
                 mix.psi(j, :)=max(diag(S(:, :, j))-sum(SpsiinvAMinv.*mix.A(:, :, j), 2), mix.eta)';
             end

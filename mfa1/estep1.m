@@ -1,3 +1,12 @@
+% Return Values
+%   mix: mix.priors ( Prob data come from cluster i) and mix.centres (mu) are updated
+%
+%   S: local covariance matrix for each component (stored in 3D array, dim 3 = j)
+%
+%   logl: log likelihood
+
+
+
 function [mix, S, logl]=estep1(r, mix, I, u, alg)
 %increase no. of draws if L^(t+1)<L^t
 %post: Mxn, x1_t:dxM
@@ -23,6 +32,10 @@ for i=1:npat
         ur=rhaltvec(u);
         ind=r.p(:, i);
         [tmp,ind2]=sort(ind);
+        % calling ghk simulator
+        %	OUTPUT:	p = ranking prob.
+        %           y.y1 = E(x); 
+        %           y.y2 = E(xx'); 
         [y, p]=ghkr(I.C*mix.centres(ind,j), I.C*sigma(ind, ind, j)*I.C',ur, J);
         x1_t(:, j)=I.Ci*y.y1;
         x2_t(:, :, j)=I.Ci*y.y2*I.Ci';

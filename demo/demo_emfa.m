@@ -1,4 +1,4 @@
-cd G:\program\my_prog\a-mfa\demo
+cd D:\MFA\demo
 load data.mat; % t=x;
 %x=t;
 options2(3)=1e-2; options2(14)=10;   options2(1)=0; options2(5)=1;%for k-means
@@ -13,9 +13,11 @@ for ncentres=3:3
     like1=zeros(1,10); like2=zeros(1,10); %   ncentres 
     for j=1:10       
         tic
+        % initialize parameters
         mix = gmmfainit1_c(x, ncentres, 2, covar_type,options2); %options=options1;        
         T0=toc; t0(ncentres,j)=T0;
         tic       
+        % use HBIC criterion to fit model
         [mix1, options, errlog] =  msqgmmfa_c(mix, T, options3,'HBIC'); % options=options3;
         T1=toc; t1(ncentres,j)=T1;
         like1(j)=options(8);    mix1tmp(j)=mix1;

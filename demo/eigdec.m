@@ -13,12 +13,12 @@ function [evals, evec] = eigdec(x, N)
 %	Copyright (c) Ian T Nabney (1996-2001)
 
 if nargout == 1
-   evals_only = logical(1);
+   evals_only = true;
 else
-   evals_only = logical(0);
+   evals_only = false;
 end
 
-if N ~= round(N) | N < 1 | N > size(x, 2)
+if N ~= round(N) || N < 1 || N > size(x, 2)
    error('Number of PCs must be integer, >0, < dim');
 end
 
@@ -39,7 +39,7 @@ end
 
 % Eigenvalues nearly always returned in descending order, but just
 % to make sure.....
-[evals perm] = sort(-temp_evals);
+[evals, perm] = sort(-temp_evals);
 evals = -evals(1:N);
 if ~evals_only
    if evals == temp_evals(1:N)
