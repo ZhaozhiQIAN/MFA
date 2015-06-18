@@ -11,14 +11,14 @@ for j=1: mfa.ncentres
 end
 % mfasamp: sample data from mfa model
 mfa.subdim=dppca_dim; x=mfasamp(mfa, ndata);
-%% fit the data
+%% generate rankings
 clf;
 [y, ro]=sort(x, 1, 'ascend');
 % profile on;
 g=group(ro');
 r.p=ro(:, g.pi);
 r.c=g.c;
-
+%% fit model
 options(1)=0;options(3)=1e-4;options(14)=20;
 ncentres=mfa.ncentres;    subdim=mfa.subdim; start='pca';
 
@@ -28,7 +28,7 @@ options(1)=0;options(3)=1e-1;
 options(14)=100;options(20)=50;options(21)=200;options(22)=2000;
 % initialize parameters inside mix1
 mix1 = gmmfainit(ro', ncentres, subdim, options, start, 'ECM2');
-for i=1:2
+for i=1
     tic
     if strcmp(alg{i}, 'EM')
         %convert mix used in ECM to be used in EM 

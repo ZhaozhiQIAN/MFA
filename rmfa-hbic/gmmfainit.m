@@ -1,4 +1,3 @@
-% for rankings
 function mix = gmmfainit(x, ncentres, subdim, options, start, alg)
 %GMMINIT Initialises Gaussian mfa from data
 
