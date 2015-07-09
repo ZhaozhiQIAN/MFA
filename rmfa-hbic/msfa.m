@@ -31,7 +31,7 @@ if length(q_temp)==0 %length(q_temp) == 0 || q_temp==0
     U = [];%Utemp(:, 1);
     subdim=0;%ppca_dim=1;
 else    
-    npara=data_dim*([1: q_temp]+2)-[1: q_temp].*([1: q_temp]-1)/2;    
+    npara=(data_dim-1)*([1: q_temp]+2)-[1: q_temp].*([1: q_temp]-1)/2 - 1;    
    % ind=[data_dim-1:-1:data_dim-q_temp];
    % BIC=-ndata1*(cumsum(log(l(1: q_temp)')) + ind.*log(s2_temp(ind)'))-npara*log((ndata2));
     BIC=-ndata1*(cumsum(log(l(1: q_temp)')-l(1: q_temp)'+1))-npara*log((ndata2));

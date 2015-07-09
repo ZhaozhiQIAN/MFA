@@ -17,4 +17,5 @@ for j=1: mfa.ncentres
     noisdata=mvnrnd(mfa.centres(:, j), diag(mfa.psi(j, :)), ndata);
     x(:, start+1: start+ndata)=(y{j}*mfa.A{j}'+noisdata)';
 end
-
+p = randperm(mfa.ncentres*ndata);
+x = x(:,p);
