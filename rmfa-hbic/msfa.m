@@ -1,4 +1,4 @@
-function [U, lambda, subdim] = msfa(x, ndata1, ndata2, regpara)
+function q = msfa(e_total, ndata1, ndata2)
 %PPCA	Probabilistic Principal Components Analysis
 %
 %	Description
@@ -15,38 +15,18 @@ function [U, lambda, subdim] = msfa(x, ndata1, ndata2, regpara)
 
 %	Copyright (c) Jianhua Zhao (1996-2001)
 % regpara=1e-1;
-data_dim = size(x, 2);
-% Assumes that x is centred and responsibility weighted
-% covariance matrix
-[l Utemp] = eigdec(x, data_dim);
-% Zero any negative eigenvalues (caused by rounding)
-l(l<0) = 0;
-qmax=floor(data_dim+0.5*(1-sqrt(1+8*data_dim)));%=15;%
-q_temp = min(max(find(l> 1)),qmax);
-%q_temp = data_dim-min(find(s2_temp> 1e-2));
-if length(q_temp)==0 %length(q_temp) == 0 || q_temp==0
-    % All the latent dimensions have disappeared, so we are
-    % just left with the noise model    
-    lambda = 0;%var;
-    U = [];%Utemp(:, 1);
-    subdim=0;%ppca_dim=1;
-else    
-    npara=(data_dim-1)*([1: q_temp]+2)-[1: q_temp].*([1: q_temp]-1)/2 - 1;    
-   % ind=[data_dim-1:-1:data_dim-q_temp];
-   % BIC=-ndata1*(cumsum(log(l(1: q_temp)')) + ind.*log(s2_temp(ind)'))-npara*log((ndata2));
-    BIC=-ndata1*(cumsum(log(l(1: q_temp)')-l(1: q_temp)'+1))-npara*log((ndata2));
-    % [y, ppca_dim]=max(BIC);
-    %[y, ppca_dim]=max(-ndata1*(cumsum(log(l(1: q_temp)')) + ind.*log(s2_temp(ind)'))-npara*log((ndata2)));
-    %fist augument
-    tmp=find(BIC>=[BIC(2:end) -1e+10]);
-%     if numel(tmp)==0
-%         tmp=1;
-%     end
-    subdim=tmp(1);
-    %    [y,ppca_dim]=max(-ndata1/2*(data_dim*log(s2_temp(ind)')+ind(end:-1:1).*(1+log(2*pi))));%-npara/2*(log(ndata2)+1));%
-    U = Utemp(:, 1:subdim);
-    lambda= l(1:subdim)';
+
+[q1_dim, q2_dim] = size(e_total);
+hbic = zeros(q1_dim, q2_dim);
+for q1 = 1:q1_dim
+    for q2 = 1:q2_dim
+        npara1=(10-1)*(q1+2)-q1*(q1-1)/2 - 1; 
+        npara2=(10-1)*(q2+2)-q2*(q2-1)/2 - 1; 
+        hbic(q1,q2) = e_total(q1, q2)-npara1*log(ndata1)/2-npara2*log(ndata2)/2;
+    end
 end
 
+[v,ind]=max(hbic(:));
+[q1,q2] = ind2sub(size(hbic),ind);
 
-
+q = [q1, q2];

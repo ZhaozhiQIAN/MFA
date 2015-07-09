@@ -23,7 +23,6 @@ eold=-inf;
 kill=[];
 rt=r.p';
 n0=15;   
-oldncen=mix.ncentres;
 C0=zeros(xdim);
 I.C=C0;
 for j=1:xdim-1
@@ -58,7 +57,8 @@ for n = 1:niters
     while first_time_flag || isnan(sum(S(:)))
         first_time_flag = false;
         time_ind = time_ind + 1;
-        [mix, S, e, postc]=estep1(r, mix, I, u(:, 1:ndraw(n)));
+        [mix, S, e_total, postc]=estep1(r, mix, I, u(:, 1:ndraw(n)));
+        e = e_total(size(e_total,1), size(e_total,1)); % e_total: q1 x q2
     end 
     if time_ind > 2
         disp(time_ind);
@@ -84,62 +84,30 @@ for n = 1:niters
             error(['Unknown criterion ', method]);
     end
     
-    oldncen=mix.ncentres;
-    % Annihilate component
-    switch method
-        case {'HBIC','MML'}
-            while min(ndata*mix.priors)<=n0
-                [mix, postc]=anncomp1(rt, mix, postc);
-            end
-        case 'ML'
-%             while min(ndata*mix.priors)<=1
-%                 [mix, postc, logact]=anncomp(rt, mix, postc, logact, 1);
-%             end
-        otherwise
-            error(['Unknown criterion ', method]);
-    end
-    if mix.ncentres<oldncen
-        fprintf('annihilate %d components\n', oldncen-mix.ncentres);
-        kill=[kill n];
-    end
-    
+
     % CM-step 1(continued): calculate number of data in each component
     component_n = sum(postc, 2);
     assert(sum(component_n)-ndata < 1e-7);
     
-    for j=1: mix.ncentres 
-        %  CM-step 1.5: select q (q is stored in mix.effdim)
+    %  CM-step 1.5: select q (q is stored in mix.effdim)
+    
+
+    qnew = msfa(e_total, component_n(1), component_n(2));
+    mix.effdim = qnew;
+    for j=1: mix.ncentres  
         psisinv=diag(mix.psi(j, :).^-0.5);
         Stil=psisinv*((S(:, :, j)+S(:, :, j)')/2)*psisinv;
-        switch method
-            case 'HBIC'
-                [tempU, templambda, mix.effdim(j)] = msfa(Stil, component_n(j), component_n(j));
-            case 'MML'
-                [tempU, templambda, mix.effdim(j)] = msfa(Stil, component_n(j), component_n(j)/12*exp(1));
-            case 'ML'
-                [templambda,tempU] = eigdec(Stil, mix.subdim(j));
-                templambda=templambda(templambda>1)';
-                mix.effdim(j)=length(templambda);
-            otherwise
-                error(['Unknown criterion ', method]);
+        [templambda, tempU] = eigdec(Stil, qnew(j));
+        mix.lambda{j}=templambda';           
+        mix.U{j}=tempU(:, 1:mix.effdim(j));
+        %  CM-step 2: Update A
+        if size(mix.A{j},1)~= mix.effdim(j)
+            fprintf('Size of A{%d} changed to %d\n',j, mix.effdim(j))
         end
-        if mix.effdim(j)>0
-            mix.lambda{j}=templambda;           
-            mix.U{j}=tempU(:, 1:mix.effdim(j));
-            %  CM-step 2: Update A
-            if size(mix.A{j},1)~= mix.effdim(j)
-                fprintf('Size of A{%d} changed to %d\n',j, mix.effdim(j))
-            end
-            mix.A{j}=sqrt(mix.lambda{j}-1)'*sqrt(mix.psi(j, :)).*mix.U{j}';
-            %  CM-step 3: Update \Psi
-            mix.psi(j, :)=uppsi(mix, Stil, j);         
-        else
-            mix.lambda{j}=[];
-            mix.U{j}=[];
-            mix.A{j}=[];
-            S1=(S(:,:,j)+S(:,:,j)')/2;
-            mix.psi(j, :)=max(diag(S1)',mix.eta);
-        end
+        mix.A{j}= diag(sqrt(mix.psi(j, :)))*mix.U{j}*diag(sqrt(mix.lambda{j}-1));
+        mix.A{j}= mix.A{j}';
+        %  CM-step 3: Update \Psi
+        mix.psi(j, :)=uppsi(mix, Stil, j);         
     end
     % update number of parameters after reselect q
     mix.nwts = 1 + (mix.nin-1)*(mix.effdim+2) - mix.effdim.*(mix.effdim-1)/2 -1;

@@ -23,46 +23,58 @@ priors = mix.priors';
 
 logPro=log(priors+realmin);
 
-for j=1:mix.ncentres
-    sigma(:, :, j)=mix.A{j}'*mix.A{j}+diag(mix.psi(j, :));
-end
+logl = zeros(size(mix.A{1},1), size(mix.A{2}, 1));
 
-for i=1:npat
-    for j=1:mix.ncentres
-        ur=rhaltvec(u);
-        ind=r.p(:, i);
-        [tmp,ind2]=sort(ind);
-        % calling ghk simulator
-        %	OUTPUT:	p = ranking prob.
-        %           y.y1 = E(x); 
-        %           y.y2 = E(xx'); 
-        [y, p]=ghkr(I.C*centres(ind,j), I.C*sigma(ind, ind, j)*I.C',ur, J);
-        x1_t(:, j)=I.Ci*y.y1;
-        x2_t(:, :, j)=I.Ci*y.y2*I.Ci';
-        loga(j)=log(p);
+for q1 = 1:size(mix.A{1},1)
+    for q2 = 1:size(mix.A{2}, 1)
+
+%         for j=1:mix.ncentres
+%             sigma(:, :, j)=mix.A{j}'*mix.A{j}+diag(mix.psi(j, :));
+%         end
+        sigma(:,:,1) = mix.A{1}(1:q1,:)'*mix.A{1}(1:q1,:)+diag(mix.psi(1, :));
+        sigma(:,:,2) = mix.A{2}(1:q2,:)'*mix.A{2}(1:q2,:)+diag(mix.psi(2, :));
+
+        for i=1:npat
+            for j=1:mix.ncentres
+                ur=rhaltvec(u);
+                ind=r.p(:, i);
+                [tmp,ind2]=sort(ind);
+                % calling ghk simulator
+                %	OUTPUT:	p = ranking prob.
+                %           y.y1 = E(x); 
+                %           y.y2 = E(xx'); 
+                [y, p]=ghkr(I.C*centres(ind,j), I.C*sigma(ind, ind, j)*I.C',ur, J);
+                x1_t(:, j)=I.Ci*y.y1;
+                x2_t(:, :, j)=I.Ci*y.y2*I.Ci';
+                loga(j)=log(p);
+            end
+            loga=loga+logPro;
+            logP(:, i)=loga;
+            loga=exp(loga-max(loga));
+            post(:, i)=loga/sum(loga);
+            postc(:, i)=post(:, i)*r.c(i);
+            for j=1:mix.ncentres
+                x1_t(:, j)=postc(j, i)*x1_t(:, j);
+                mu_diff1(:, j)=mu_diff1(:, j)+x1_t(ind2, j);
+                x2_t(:, :, j)=postc(j, i)*x2_t(:, :, j);
+                S(:, :, j)=S(:, :, j)+x2_t(ind2, ind2, j);
+            end
+        end
+        new_pr=sum(postc, 2);
+        priors=new_pr/ndata;
+        mu_diff1=mu_diff1./repmat(new_pr', xdim, 1);
+        mu_diff2=mu_diff1;
+        %mu_diff2(end, :)=zeros(1, mix.ncentres);
+        centres=mu_diff2+centres;
+        for j=1:mix.ncentres
+            S(:, :, j)=S(:, :, j)/new_pr(j)-mu_diff1(:, j)*mu_diff2(:, j)'-mu_diff2(:, j)*mu_diff1(:, j)'+mu_diff2(:, j)*mu_diff2(:,j)';
+        end
+        logl(q1,q2) = sum(sum((-log(post+realmin) + logP).*postc,2));
+
     end
-    loga=loga+logPro;
-    logP(:, i)=loga;
-    loga=exp(loga-max(loga));
-    post(:, i)=loga/sum(loga);
-    postc(:, i)=post(:, i)*r.c(i);
-    for j=1:mix.ncentres
-        x1_t(:, j)=postc(j, i)*x1_t(:, j);
-        mu_diff1(:, j)=mu_diff1(:, j)+x1_t(ind2, j);
-        x2_t(:, :, j)=postc(j, i)*x2_t(:, :, j);
-        S(:, :, j)=S(:, :, j)+x2_t(ind2, ind2, j);
-    end
-end
-new_pr=sum(postc, 2);
-priors=new_pr/ndata;
-mu_diff1=mu_diff1./repmat(new_pr', xdim, 1);
-mu_diff2=mu_diff1;
-%mu_diff2(end, :)=zeros(1, mix.ncentres);
-centres=mu_diff2+centres;
-for j=1:mix.ncentres
-    S(:, :, j)=S(:, :, j)/new_pr(j)-mu_diff1(:, j)*mu_diff2(:, j)'-mu_diff2(:, j)*mu_diff1(:, j)'+mu_diff2(:, j)*mu_diff2(:,j)';
-end
-logl= sum(sum((-log(post+realmin) + logP).*postc,2));
+end    
+
+
 mix.centres = centres';
 mix.priors = priors';
 % scale and location shift
