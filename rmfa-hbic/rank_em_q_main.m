@@ -58,7 +58,7 @@ for n = 1:niters
         first_time_flag = false;
         time_ind = time_ind + 1;
         [mix, S, e_total, postc]=estep1(r, mix, I, u(:, 1:ndraw(n)));
-        e = e_total(size(e_total,1), size(e_total,1)); % e_total: q1 x q2
+        e = e_total(size(e_total,1), size(e_total,2)); % e_total: q1 x q2
     end 
     if time_ind > 2
         disp(time_ind);
